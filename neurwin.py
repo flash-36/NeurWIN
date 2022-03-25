@@ -77,6 +77,7 @@ class NEURWIN(object):
         self.currentMiniBatch = 0
         self.batchCounter = 0
         self.episodeRewards = []
+        self.episodeRewards_non_discounted = []
         self.discountRewards = []
         #self.continueLearning()
     
@@ -218,6 +219,7 @@ class NEURWIN(object):
             if self.currentEpisode in self.episodeRanges:
                 self.close(self.currentEpisode)
             episodeRewards = []
+            episodeRewards_non_discounted = []
             s_0 = self.env.reset()
 
             done = False
@@ -227,6 +229,7 @@ class NEURWIN(object):
                 action = self.takeAction(s_0)
                 s_1, reward, done, info = self.env.step(action)
 
+                episodeRewards_non_discounted.append(reward)
                 if action == 1:
                     reward -= self.cost  
                 episodeRewards.append(reward)
@@ -240,6 +243,7 @@ class NEURWIN(object):
                     self.batchCounter += 1
 
                     self.episodeRewards.append(sum(episodeRewards)) 
+                    self.episodeRewards_non_discounted.append(sum(episodeRewards_non_discounted))
                     self._saveEpisodeGradients()
                     episodeRewards = []
                     self.currentEpisode += 1
@@ -257,6 +261,16 @@ class NEURWIN(object):
         self.trainingEnding()
         print(f'---------------------------\nDONE. Time taken: {self.end - self.start:.5f} seconds.')
         print(f'total timesteps taken: {self.totalTimestep}')
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        plt.plot(np.arange(len(self.episodeRewards_non_discounted)), self.episodeRewards_non_discounted)
+        plt.ylabel('Score')
+        plt.xlabel('Episode #')
+        print(self.episodeRewards_non_discounted)
+        df = pd.DataFrame({"rewards":self.episodeRewards_non_discounted})
+        df.to_csv('Neurwin_score.csv',header=None)
+        plt.savefig('Neurwin_score.jpg')
+        plt.show()
 
     def close(self, episode):
         '''Function for saving the NN parameters at defined interval *episodeSaveInterval* '''

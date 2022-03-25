@@ -33,7 +33,7 @@ torch.manual_seed(SEED)
 sigmoidParam = 5     # sigmoid function sensitivity parameter. 1 for deadline. 5 for recovering. 0.75 for size-aware
 BATCHSIZE = 5        # gradient ascent step every n episodes
 learningRate = 1e-03   
-numEpisodes = 30000
+numEpisodes = 2000
 discountFactor = 0.99
 
 TRAIN = True
@@ -64,7 +64,7 @@ else:
 
 ########################################----TRAINING SETTINGS----#########################################################
 ########################################## NEURWIN DEADLINE SCHEDULING ###################################################
-'''
+# '''
 if noiseVar > 0: 
     deadlineDirectory = (f'trainResults/neurwin/deadline_env/noise_{noiseVar}_version/')
 else:
@@ -76,7 +76,7 @@ maxLoad=9, newJobProb=0.7, processingCost=0.5, train=TRAIN, batchSize=BATCHSIZE,
 agent = NEURWIN(stateSize=STATESIZE,lr=learningRate, env=deadlineEnv, sigmoidParam=sigmoidParam, numEpisodes=numEpisodes, noiseVar=noiseVar,
 seed=SEED, batchSize=BATCHSIZE, discountFactor=discountFactor, saveDir = deadlineDirectory, episodeSaveInterval=5)
 agent.learn()
-'''
+# '''
 ########################################## NEURWIN WIRELESS SCHEDULING #################################################
 '''
 if noiseVar > 0:
