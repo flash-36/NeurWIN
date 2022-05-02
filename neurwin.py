@@ -15,6 +15,7 @@ import torch.nn as nn
 #from torchviz import make_dot
 import matplotlib.pyplot as plt 
 import torch.nn.functional as F
+from collections import defaultdict
 
 class fcnn(nn.Module):
     '''Fully-Connected Neural network for NEURWIN to modify its parameters'''
@@ -52,18 +53,19 @@ class NEURWIN(object):
         self.episodeRanges = np.arange(0, self.numEpisodes+episodeSaveInterval, episodeSaveInterval)
         self.stateSize = stateSize
         self.batchSize = batchSize
+        self.outer_batchSize = 10
         self.sigmoidParam = sigmoidParam
         self.initialSigmoidParam = sigmoidParam
         self.beta = discountFactor
         self.env = env
         self.nn = fcnn(self.stateSize)
-        self.linear1WeightGrad = []
-        self.linear2WeightGrad = []
-        self.linear3WeightGrad = []
+        self.linear1WeightGrad = defaultdict(list)
+        self.linear2WeightGrad = defaultdict(list)
+        self.linear3WeightGrad = defaultdict(list)
 
-        self.linear1BiasGrad = []
-        self.linear2BiasGrad = []
-        self.linear3BiasGrad = []
+        self.linear1BiasGrad = defaultdict(list)
+        self.linear2BiasGrad = defaultdict(list)
+        self.linear3BiasGrad = defaultdict(list)
 
         self.paramChange = []
         self.numOfActions = 2
@@ -76,9 +78,10 @@ class NEURWIN(object):
         #-------------counters-------------
         self.currentMiniBatch = 0
         self.batchCounter = 0
+        self.outer_batchCounter = 0
         self.episodeRewards = []
         self.episodeRewards_non_discounted = []
-        self.discountRewards = []
+        self.discountRewards = defaultdict(list)
         #self.continueLearning()
     
     def continueLearning(self):
@@ -156,16 +159,16 @@ class NEURWIN(object):
 
         return action[0]
 
-    def _saveEpisodeGradients(self):
+    def _saveEpisodeGradients(self,batch):
         '''Function for saving the gradients of each episode in one mini-batch'''
 
-        self.linear1WeightGrad.append(self.nn.linear1.weight.grad.clone())
-        self.linear2WeightGrad.append(self.nn.linear2.weight.grad.clone())
-        self.linear3WeightGrad.append(self.nn.linear3.weight.grad.clone())
+        self.linear1WeightGrad[batch].append(self.nn.linear1.weight.grad.clone())
+        self.linear2WeightGrad[batch].append(self.nn.linear2.weight.grad.clone())
+        self.linear3WeightGrad[batch].append(self.nn.linear3.weight.grad.clone())
 
-        self.linear1BiasGrad.append(self.nn.linear1.bias.grad.clone())
-        self.linear2BiasGrad.append(self.nn.linear2.bias.grad.clone())
-        self.linear3BiasGrad.append(self.nn.linear3.bias.grad.clone())
+        self.linear1BiasGrad[batch].append(self.nn.linear1.bias.grad.clone())
+        self.linear2BiasGrad[batch].append(self.nn.linear2.bias.grad.clone())
+        self.linear3BiasGrad[batch].append(self.nn.linear3.bias.grad.clone())
 
         self.optimizer.zero_grad()
 
@@ -174,30 +177,41 @@ class NEURWIN(object):
         '''Function for performing the gradient ascent step on accumelated mini-batch gradients.'''
         print('performing batch gradient step')
         
-        meanBatchReward = sum(self.discountRewards) / len(self.discountRewards)
-        for i in range(len(self.discountRewards)):
-            self.discountRewards[i] = self.discountRewards[i] - meanBatchReward
+        for batch in range(self.outer_batchSize):
+            meanBatchReward = sum(self.discountRewards[batch]) / len(self.discountRewards[batch])
+            for i in range(len(self.discountRewards[batch])):
+                
+                self.discountRewards[batch][i] = self.discountRewards[batch][i] - meanBatchReward
 
-            self.nn.linear1.weight.grad += self.discountRewards[i]*self.linear1WeightGrad[i]
-            self.nn.linear2.weight.grad += self.discountRewards[i]*self.linear2WeightGrad[i]
-            self.nn.linear3.weight.grad += self.discountRewards[i]*self.linear3WeightGrad[i]
+                self.nn.linear1.weight.grad += self.discountRewards[batch][i]*self.linear1WeightGrad[batch][i]
+                self.nn.linear2.weight.grad += self.discountRewards[batch][i]*self.linear2WeightGrad[batch][i]
+                self.nn.linear3.weight.grad += self.discountRewards[batch][i]*self.linear3WeightGrad[batch][i]
 
-            self.nn.linear1.bias.grad += self.discountRewards[i]*self.linear1BiasGrad[i]
-            self.nn.linear2.bias.grad += self.discountRewards[i]*self.linear2BiasGrad[i]
-            self.nn.linear3.bias.grad += self.discountRewards[i]*self.linear3BiasGrad[i]
-            
-        self.linear1WeightGrad = []
-        self.linear2WeightGrad = []
-        self.linear3WeightGrad = []
+                self.nn.linear1.bias.grad += self.discountRewards[batch][i]*self.linear1BiasGrad[batch][i]
+                self.nn.linear2.bias.grad += self.discountRewards[batch][i]*self.linear2BiasGrad[batch][i]
+                self.nn.linear3.bias.grad += self.discountRewards[batch][i]*self.linear3BiasGrad[batch][i]
 
-        self.linear1BiasGrad = []
-        self.linear2BiasGrad = []
-        self.linear3BiasGrad = []
+
+        self.nn.linear1.weight.grad /= self.outer_batchSize 
+        self.nn.linear2.weight.grad /= self.outer_batchSize 
+        self.nn.linear3.weight.grad /= self.outer_batchSize 
+        self.nn.linear1.bias.grad /= self.outer_batchSize 
+        self.nn.linear2.bias.grad /= self.outer_batchSize 
+        self.nn.linear3.bias.grad /= self.outer_batchSize 
+
+
+        self.linear1WeightGrad = defaultdict(list)
+        self.linear2WeightGrad = defaultdict(list)
+        self.linear3WeightGrad = defaultdict(list)
+
+        self.linear1BiasGrad = defaultdict(list)
+        self.linear2BiasGrad = defaultdict(list)
+        self.linear3BiasGrad = defaultdict(list)
 
         self.optimizer.step()
         self.optimizer.zero_grad()
         
-        self.discountRewards = []  
+        self.discountRewards = defaultdict(list)
         
         #self.changeSigmoidParam() # uncomment this to change m value every mini-batch
 
@@ -239,23 +253,28 @@ class NEURWIN(object):
                 self.episodeTimeStep += 1
                 if done:
                     print(f'finished episode: {self.currentEpisode+1}')
-                    self.discountRewards.append(self._discountRewards(episodeRewards))
-                    self.batchCounter += 1
+                    self.discountRewards[self.outer_batchCounter].append(self._discountRewards(episodeRewards))
+                    
 
                     self.episodeRewards.append(sum(episodeRewards)) 
                     self.episodeRewards_non_discounted.append(sum(episodeRewards_non_discounted))
-                    self._saveEpisodeGradients()
+                    self._saveEpisodeGradients(self.outer_batchCounter)
                     episodeRewards = []
                     self.currentEpisode += 1
                     self.episodeTimeList.append(self.episodeTimeStep)
                     self.episodeTimeStep = 0
+                    self.batchCounter += 1
                     #self.changeSigmoidParam() # uncomment this to change param every episode in one mini-batch
 
                     if self.batchCounter == self.batchSize:
-                        self._performBatchStep()
+                        # self._performBatchStep()
                         self.currentMiniBatch += 1
                         self.batchCounter = 0
+                        self.outer_batchCounter += 1
                         #self.sigmoidParam = self.initialSigmoidParam # uncomment this to change m value every episode in one mini-batch
+                    if self.outer_batchCounter == self.outer_batchSize:
+                        self._performBatchStep()
+                        self.outer_batchCounter = 0
         self.end = time.time()
         self.close(self.numEpisodes)
         self.trainingEnding()

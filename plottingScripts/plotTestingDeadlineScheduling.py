@@ -15,7 +15,7 @@ plt.rcParams['font.family'] = 'Times New Roman'
 
 SCHEDULELIST = [1,1,25]    
 ARMSLIST = [4, 10, 100]        
-INTERVALLIST = [10, 10, 20]
+INTERVALLIST = [20, 20, 20]
 
 
 ########################## CONSTANTS ######################
@@ -171,32 +171,33 @@ for i in range(len(ARMSLIST)):
 
     deadlineRewards, deadlinePercentile5, deadlinePercentile95 = plotDeadlineIndex(ARMS, SCHEDULE)
     NeurWINRewards, NeurWINPercentile5, NeurWINPercentile95 = plotNeurWIN(ARMS, SCHEDULE, INTERVAL)
-    wolpRewards, wolpPercentile5, wolpPercentile95 = plotWolp(ARMS, SCHEDULE, INTERVAL)
-    aqlRewards, aqlPercentile5, aqlPercentile95 = plotAQL(ARMS, SCHEDULE, INTERVAL)
-    qwicRewards, qwicPercentile5, qwicPercentile95 = plotQWIC(ARMS, SCHEDULE, INTERVAL)
-    wibqlRewards, wibqlPercentile5, wibqlPercentile95 = plotWIBQL(ARMS, SCHEDULE, INTERVAL)
+    # wolpRewards, wolpPercentile5, wolpPercentile95 = plotWolp(ARMS, SCHEDULE, INTERVAL)
+    # aqlRewards, aqlPercentile5, aqlPercentile95 = plotAQL(ARMS, SCHEDULE, INTERVAL)
+    # qwicRewards, qwicPercentile5, qwicPercentile95 = plotQWIC(ARMS, SCHEDULE, INTERVAL)
+    # wibqlRewards, wibqlPercentile5, wibqlPercentile95 = plotWIBQL(ARMS, SCHEDULE, INTERVAL)
 
 
     axes[i].hlines(xmin=0, xmax=EPISODEEND, y=deadlineRewards, label='Deadline Index', color='r', linewidth=LINEWIDTH, linestyle='dashdot', zorder=4)
     axes[i].fill_between(x=numEpisode, y1=deadlinePercentile5, y2=deadlinePercentile95, alpha=0.2, color='orange')
+    # print(len(numEpisode),len(NeurWINRewards))
     axes[i].plot(numEpisode, NeurWINRewards, label='NeurWIN', linewidth=LINEWIDTH, linestyle='solid', zorder=5)
     axes[i].fill_between(x=numEpisode, y1=NeurWINPercentile5, y2=NeurWINPercentile95, alpha=0.2, color='green')
-    axes[i].plot(numEpisode, aqlRewards, label=f'AQL', color='saddlebrown', linewidth=LINEWIDTH, linestyle='dotted')
+    # axes[i].plot(numEpisode, aqlRewards, label=f'AQL', color='saddlebrown', linewidth=LINEWIDTH, linestyle='dotted')
 
-    axes[i].fill_between(x=numEpisode, y1=aqlPercentile5, y2=aqlPercentile95, alpha=0.2, color='saddlebrown')
-    axes[i].plot(numEpisode, qwicRewards, label=f'QWIC', color='g', linewidth=LINEWIDTH, linestyle=(0, (3,1,1,1,1,1)))
-    axes[i].fill_between(x=numEpisode,y1=qwicPercentile5, y2=qwicPercentile95, alpha=0.2, color='teal')
-    axes[i].plot(numEpisode, wibqlRewards, label=f'WIBQL', color='lightseagreen', linewidth=LINEWIDTH, linestyle=(0, (3,1,3,3,1,3)))
-    axes[i].fill_between(x=numEpisode,y1=wibqlPercentile5, y2=wibqlPercentile95, alpha=0.2, color='lightseagreen')
+    # axes[i].fill_between(x=numEpisode, y1=aqlPercentile5, y2=aqlPercentile95, alpha=0.2, color='saddlebrown')
+    # axes[i].plot(numEpisode, qwicRewards, label=f'QWIC', color='g', linewidth=LINEWIDTH, linestyle=(0, (3,1,1,1,1,1)))
+    # axes[i].fill_between(x=numEpisode,y1=qwicPercentile5, y2=qwicPercentile95, alpha=0.2, color='teal')
+    # axes[i].plot(numEpisode, wibqlRewards, label=f'WIBQL', color='lightseagreen', linewidth=LINEWIDTH, linestyle=(0, (3,1,3,3,1,3)))
+    # axes[i].fill_between(x=numEpisode,y1=wibqlPercentile5, y2=wibqlPercentile95, alpha=0.2, color='lightseagreen')
 
     if ARMS == 100:
         pass
-    else:
-        reinforceRewards, reinforcePercentile5, reinforcePercentile95 = plotReinforce(ARMS, SCHEDULE, INTERVAL)
-        axes[i].plot(numEpisode, reinforceRewards, label=f'REINFORCE', color='k', linewidth=LINEWIDTH, linestyle='dotted')
-        axes[i].fill_between(x=numEpisode, y1=reinforcePercentile5, y2=reinforcePercentile95, alpha=0.2, color='k')
-        axes[i].plot(numEpisode, wolpRewards, label='WOLP-DDPG', color='darkorchid', linewidth=LINEWIDTH, linestyle='dashed')
-        axes[i].fill_between(x=numEpisode, y1=wolpPercentile5, y2=wolpPercentile95, alpha=0.2, color='darkorchid')
+    # else:
+        # reinforceRewards, reinforcePercentile5, reinforcePercentile95 = plotReinforce(ARMS, SCHEDULE, INTERVAL)
+        # axes[i].plot(numEpisode, reinforceRewards, label=f'REINFORCE', color='k', linewidth=LINEWIDTH, linestyle='dotted')
+        # axes[i].fill_between(x=numEpisode, y1=reinforcePercentile5, y2=reinforcePercentile95, alpha=0.2, color='k')
+        # axes[i].plot(numEpisode, wolpRewards, label='WOLP-DDPG', color='darkorchid', linewidth=LINEWIDTH, linestyle='dashed')
+        # axes[i].fill_between(x=numEpisode, y1=wolpPercentile5, y2=wolpPercentile95, alpha=0.2, color='darkorchid')
     axes[i].tick_params(axis='y', rotation=90)
     axes[i].set_xticks(np.arange(0,EPISODEEND+1,500))
     if ARMS == 100:

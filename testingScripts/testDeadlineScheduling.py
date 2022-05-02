@@ -34,11 +34,11 @@ np.random.seed(SEED)
 torch.manual_seed(SEED)
 ################################-PARAMETERS-########################################
 numEpisodes = 1
-ARMS = 100         
-SCHEDULE = 25     
+ARMS = 10         
+SCHEDULE = 1     
 PROCESSINGCOST = 0.5
 BATCHSIZE = 5
-EPISODESEND = 2000
+EPISODESEND = 10000
 EPISODERANGE = 20
 BETA = 0.99
 REINFORCELR = 0.001
@@ -154,6 +154,18 @@ def selectDeadlineIndex():
     choice = getSelection(index)
 
     return choice
+
+def calculate_deadline_index(state):
+    load = state[1]
+    laxity = state[0]
+    if load == 0:
+        return 0
+    elif load>=1 and load<=(laxity-1):
+        return 1 - PROCESSINGCOST
+    elif laxity <= load:
+        firstVal = (BETA**(laxity-1))*(0.2*(load - laxity + 1)**2) 
+        secondVal = (BETA**(laxity-1))*(0.2*(load - laxity)**2) 
+        return (firstVal - secondVal + 1 - PROCESSINGCOST)
 
 def takeActionAndRecordDeadlineIndex(arms):
     global rewards, time, envs, states
@@ -327,6 +339,74 @@ def qLearningTestSelectArms():
     choice = getSelection(index)
 
     return choice
+
+def rankify(input1):
+ 
+    # Copy input array into newArray
+    newArray = input1.copy()
+     
+    # Sort newArray[] in ascending order
+    newArray.sort()
+     
+    # Dictionary to store the rank of
+    # the array element
+    ranks = {}
+     
+    rank = 1
+     
+    for index in range(len(newArray)):
+        element = newArray[index];
+     
+        # Update rank of element
+        if element not in ranks:
+            ranks[element] = rank
+            rank += 1
+         
+    # Assign ranks to elements
+    for index in range(len(input1)):
+        element = input1[index]
+        input1[index] = ranks[input1[index]]
+
+###########################-   Compare actual vs learned whittle indices -######################################
+#'''
+env = deadlineSchedulingEnv(seed=50, numEpisodes=numEpisodes, episodeLimit=TIMELIMIT, maxDeadline=12,
+maxLoad=9, newJobProb=0.7, processingCost=PROCESSINGCOST, train=False, batchSize=EPISODESEND, noiseVar=0)
+equi_dist_states = [np.array([laxity,load]) for laxity in np.linspace(0,env.maxDeadline,env.maxDeadline+1) for load in np.linspace(0,env.maxLoad,env.maxLoad+1)]
+# v_equi_dist_states = [torch.from_numpy(state).float().to(device) for state in equi_dist_states]
+true_deadline_indeces = [calculate_deadline_index(state) for state in equi_dist_states]
+# print(equi_dist_states)
+# print("\n\n\n")
+# print(true_deadline_indeces)
+ALLEPISODES = np.arange(0, EPISODESEND+EPISODERANGE, EPISODERANGE) 
+mses = []
+for x in ALLEPISODES:
+    EPISODESTRAINED = x
+    MODELNAME = WINNMODELDIR+(f'seed_{filesSeed}_lr_0.001_batchSize_{BATCHSIZE}_trainedNumEpisodes_{EPISODESTRAINED}/trained_model.pt')
+    agent = fcnn(stateSize=STATESIZE)
+    agent.load_state_dict(torch.load(MODELNAME))
+
+    learnt_deadline_indices = [agent.forward(state).detach().numpy()[0] for state in equi_dist_states]
+    # rankify(learnt_deadline_indices)
+    # rankify(true_deadline_indeces)
+    # print([(learnt_deadline_index,true_deadline_index) for learnt_deadline_index,true_deadline_index in zip(learnt_deadline_indices,true_deadline_indeces)] )
+    mse =  np.square(np.subtract(true_deadline_indeces,learnt_deadline_indices)).mean()
+    mses.append(mse)
+print(mses)
+plt.plot(ALLEPISODES, mses, label='MSE(true indeces vs predicted indeces)')
+plt.savefig('../plotResults/deadline_results/deadline_index_mses.pdf')
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+#'''
 
 ###########################-    TESTING SETTINGS    -######################################
 #########################- DEADLINE CLOSED-FORM INDEX SCHEDULING -#########################
