@@ -52,8 +52,8 @@ class NEURWIN(object):
         self.numEpisodes = numEpisodes
         self.episodeRanges = np.arange(0, self.numEpisodes+episodeSaveInterval, episodeSaveInterval)
         self.stateSize = stateSize
-        self.batchSize = batchSize
-        self.outer_batchSize = 10
+        self.batchSize = 1
+        self.outer_batchSize = 5
         self.sigmoidParam = sigmoidParam
         self.initialSigmoidParam = sigmoidParam
         self.beta = discountFactor
@@ -107,10 +107,11 @@ class NEURWIN(object):
             
         elif state[0] in np.arange(0,13):
             
-            load = self.G.randint(1,9+1)
-            timeUntilDeadline = self.G.randint(1,12+1)
-            stateVal = np.array([timeUntilDeadline, load], dtype=np.float32)
-            self.cost = self.nn.forward(stateVal).detach().numpy()[0]
+            # load = self.G.randint(1,9+1)
+            # timeUntilDeadline = self.G.randint(1,12+1)
+            # stateVal = np.array([timeUntilDeadline, load], dtype=np.float32)
+            # self.cost = self.nn.forward(stateVal).detach().numpy()[0]
+            self.cost = self.nn.forward(state).detach().numpy()[0]
             
             
         elif self.env.classVal == 1:
@@ -131,13 +132,13 @@ class NEURWIN(object):
             
     
 
-    def takeAction(self, state):
+    def takeAction(self, state,cost_state):
         '''Function for taking action based on the sigmoid function's generated probability distribution.'''
 
         index = self.nn.forward(state)
         if (self.env.episodeTime == 0) and (self.currentEpisode % self.batchSize == 0):
             print(f'new state: {state}')
-            self.newMiniBatchReset(index, state)
+            self.newMiniBatchReset(index, cost_state)
         
         sigmoidProb = torch.sigmoid(self.sigmoidParam*(index - self.cost))
         probOne = sigmoidProb.detach().numpy()[0]
@@ -228,26 +229,35 @@ class NEURWIN(object):
         self.episodeTimeStep = 0
         self.episodeTimeList = []
         #self.currentEpisode = 100 # for continuing learning 
-
+        s_0_buffer = defaultdict(int)
         while self.currentEpisode < self.numEpisodes:
             if self.currentEpisode in self.episodeRanges:
                 self.close(self.currentEpisode)
             episodeRewards = []
             episodeRewards_non_discounted = []
-            s_0 = self.env.reset()
+            # print(s_0_buffer)
+            # print(s_0_buffer[self.outer_batchCounter])
+            if self.outer_batchCounter not in s_0_buffer.keys():
+                s_0_buffer[self.outer_batchCounter] = self.env.reset()
+            s_0 = s_0_buffer[self.outer_batchCounter]
+            s_1 = self.env.reset()
 
             done = False
             #self.sigmoidParam = self.initialSigmoidParam #uncomment this for doing param change every timestep in episode
 
             while done == False:
-                action = self.takeAction(s_0)
-                s_1, reward, done, info = self.env.step(action)
+                action = self.takeAction(s_1,s_0)
+                # if self.episodeTimeStep == 0:
+                #     print(s_0,self.cost)
+                #     if self.outer_batchCounter == self.outer_batchSize:
+                #         print("%%")
+                s_prime, reward, done, info = self.env.step(action)
 
                 episodeRewards_non_discounted.append(reward)
                 if action == 1:
                     reward -= self.cost  
                 episodeRewards.append(reward)
-                s_0 = s_1
+                s_1 = s_prime
                 #self.changeSigmoidParam() #uncomment this for doing param change every timestep in episode
                 self.totalTimestep += 1
                 self.episodeTimeStep += 1
@@ -275,6 +285,7 @@ class NEURWIN(object):
                     if self.outer_batchCounter == self.outer_batchSize:
                         self._performBatchStep()
                         self.outer_batchCounter = 0
+                        s_0_buffer = defaultdict(int)
         self.end = time.time()
         self.close(self.numEpisodes)
         self.trainingEnding()

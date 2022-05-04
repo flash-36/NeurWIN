@@ -32,7 +32,7 @@ torch.manual_seed(SEED)
 
 sigmoidParam = 5     # sigmoid function sensitivity parameter. 1 for deadline. 5 for recovering. 0.75 for size-aware
 BATCHSIZE = 5        # gradient ascent step every n episodes
-learningRate = 1e-03   
+learningRate = 1e-03  
 numEpisodes = 10000
 discountFactor = 0.99
 

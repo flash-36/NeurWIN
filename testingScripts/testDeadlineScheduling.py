@@ -34,8 +34,8 @@ np.random.seed(SEED)
 torch.manual_seed(SEED)
 ################################-PARAMETERS-########################################
 numEpisodes = 1
-ARMS = 10         
-SCHEDULE = 1     
+ARMS = 100         
+SCHEDULE = 25     
 PROCESSINGCOST = 0.5
 BATCHSIZE = 5
 EPISODESEND = 10000
@@ -368,7 +368,7 @@ def rankify(input1):
         input1[index] = ranks[input1[index]]
 
 ###########################-   Compare actual vs learned whittle indices -######################################
-#'''
+# '''
 env = deadlineSchedulingEnv(seed=50, numEpisodes=numEpisodes, episodeLimit=TIMELIMIT, maxDeadline=12,
 maxLoad=9, newJobProb=0.7, processingCost=PROCESSINGCOST, train=False, batchSize=EPISODESEND, noiseVar=0)
 equi_dist_states = [np.array([laxity,load]) for laxity in np.linspace(0,env.maxDeadline,env.maxDeadline+1) for load in np.linspace(0,env.maxLoad,env.maxLoad+1)]
@@ -406,7 +406,7 @@ plt.show()
 
 
 
-#'''
+# '''
 
 ###########################-    TESTING SETTINGS    -######################################
 #########################- DEADLINE CLOSED-FORM INDEX SCHEDULING -#########################
